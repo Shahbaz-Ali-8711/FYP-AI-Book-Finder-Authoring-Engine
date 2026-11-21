@@ -1,0 +1,11 @@
+streamlit
+streamlit-option-menu
+opencv-python
+google-genai
+python-dotenv
+requests
+easyocr
+pillow
+bcrypt
+fpdf2
+PyPDF2
