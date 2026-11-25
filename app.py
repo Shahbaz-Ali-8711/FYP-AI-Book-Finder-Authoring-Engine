@@ -39,13 +39,13 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Exactly 5 Menu Links: Home, About Us, Core Engines (Renamed from Portfolio), Packages, Book a Call
+# 5 Functional Navigation Links: Home, Reader Hub, Writer Studio, Core Engines, About & Team
 NAV_ITEMS = [
-    ("Home", "home"),
-    ("About Us", "about"),
-    ("Core Engines", "engines"),
-    ("Packages", "packages"),
-    ("Book a Call", "book_call"),
+    ("Home", "home", "landing"),
+    ("Reader Hub", "reader", "reader"),
+    ("Writer Studio", "creator", "creator"),
+    ("Core Engines", "engines", "landing"),
+    ("About & Team", "about", "landing"),
 ]
 
 
@@ -71,18 +71,29 @@ def _render_top_nav():
                 · Autonomous Authoring & Book Discovery Engine
             </span>
         </div>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span style="background: rgba(227, 66, 52, 0.08); color: #E34234; border: 1px solid rgba(227, 66, 52, 0.28); font-size: 0.72rem; font-weight: 800; padding: 0.2rem 0.6rem; border-radius: 9999px;">
+                ⚡ Groq LPU
+            </span>
+            <span style="background: rgba(4, 106, 56, 0.08); color: #046A38; border: 1px solid rgba(4, 106, 56, 0.28); font-size: 0.72rem; font-weight: 800; padding: 0.2rem 0.6rem; border-radius: 9999px;">
+                👁️ Gemini Multimodal
+            </span>
+        </div>
     </div>
     """)
 
-    # 5 Center Navigation Links + Right Auth Trigger (Well-proportioned to prevent button dots/truncation)
-    nav_cols = st.columns([1.1, 1.2, 1.4, 1.1, 1.3, 2.1], gap="small")
+    # 5 Functional Navigation Links + Right Auth Trigger
+    nav_cols = st.columns([1.0, 1.3, 1.4, 1.3, 1.3, 2.1], gap="small")
 
-    for i, (label, section_key) in enumerate(NAV_ITEMS):
+    for i, (label, section_key, page_target) in enumerate(NAV_ITEMS):
         with nav_cols[i]:
-            is_active = (current_page == "landing" and current_section == section_key)
+            if page_target == "landing":
+                is_active = (current_page == "landing" and current_section == section_key)
+            else:
+                is_active = (current_page == page_target)
             btn_type = "primary" if is_active else "secondary"
             if st.button(label, key=f"nav_btn_{section_key}", use_container_width=True, type=btn_type):
-                st.session_state["nav_page"] = "landing"
+                st.session_state["nav_page"] = page_target
                 st.session_state["nav_section"] = section_key
                 st.session_state["show_login"] = False
                 st.rerun()

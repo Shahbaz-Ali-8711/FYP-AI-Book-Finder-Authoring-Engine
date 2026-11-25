@@ -186,6 +186,34 @@ def init_db():
         )
     ''')
 
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS saved_library_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER DEFAULT 1,
+            item_type TEXT DEFAULT 'book',
+            title TEXT NOT NULL,
+            subtitle_or_author TEXT,
+            content_or_notes TEXT,
+            meta_json TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS saved_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER DEFAULT 1,
+            item_type TEXT DEFAULT 'book',
+            title TEXT NOT NULL,
+            subtitle_or_author TEXT,
+            content_or_notes TEXT,
+            meta_json TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
     _seed_defaults(cursor)
     _seed_marketplace(cursor)
     _seed_character_and_world(cursor)
@@ -680,6 +708,111 @@ def get_author_analytics(user_id=1):
             "export_breakdown": {"PDF": 7, "EPUB": 3, "DOCX": 2},
             "recent": []
         }
+
+
+# --- PERSONAL BOOKSHELF & DRAFTS VAULT ---
+def save_library_item(title, item_type="book", subtitle_or_author="", content_or_notes="", meta_json="", user_id=1):
+    try:
+        conn = _get_connection()
+        c = conn.cursor()
+        c.execute("""
+            INSERT INTO saved_library_items (user_id, item_type, title, subtitle_or_author, content_or_notes, meta_json, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        """, (user_id, item_type, title, subtitle_or_author, content_or_notes, meta_json))
+        item_id = c.lastrowid
+        try:
+            c.execute("""
+                INSERT INTO saved_items (user_id, item_type, title, subtitle_or_author, content_or_notes, meta_json, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            """, (user_id, item_type, title, subtitle_or_author, content_or_notes, meta_json))
+        except Exception:
+            pass
+        conn.commit()
+        conn.close()
+        return True, item_id
+    except Exception as e:
+        return False, str(e)
+
+
+def get_saved_library_items(item_type=None, user_id=1):
+    try:
+        conn = _get_connection()
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        if item_type:
+            c.execute("SELECT * FROM saved_library_items WHERE user_id=? AND item_type=? ORDER BY updated_at DESC", (user_id, item_type))
+        else:
+            c.execute("SELECT * FROM saved_library_items WHERE user_id=? ORDER BY updated_at DESC", (user_id,))
+        rows = [dict(r) for r in c.fetchall()]
+        conn.close()
+        return rows
+    except Exception:
+        return []
+
+
+def delete_saved_library_item(item_id, user_id=1):
+    try:
+        conn = _get_connection()
+        c = conn.cursor()
+        c.execute("DELETE FROM saved_library_items WHERE id=? AND user_id=?", (item_id, user_id))
+        try:
+            c.execute("DELETE FROM saved_items WHERE id=? AND user_id=?", (item_id, user_id))
+        except Exception:
+            pass
+        conn.commit()
+        conn.close()
+        return True
+    except Exception:
+        return False
+
+
+def save_writer_draft(title, draft_text, template_name="modern", user_id=1):
+    try:
+        conn = _get_connection()
+        c = conn.cursor()
+        c.execute("SELECT id FROM saved_library_items WHERE user_id=? AND item_type='draft' AND title=?", (user_id, title))
+        existing = c.fetchone()
+        if existing:
+            c.execute("""
+                UPDATE saved_library_items 
+                SET content_or_notes=?, subtitle_or_author=?, updated_at=CURRENT_TIMESTAMP
+                WHERE id=?
+            """, (draft_text, template_name, existing[0]))
+            try:
+                c.execute("""
+                    UPDATE saved_items 
+                    SET content_or_notes=?, subtitle_or_author=?, updated_at=CURRENT_TIMESTAMP
+                    WHERE user_id=? AND item_type='draft' AND title=?
+                """, (draft_text, template_name, user_id, title))
+            except Exception:
+                pass
+        else:
+            c.execute("""
+                INSERT INTO saved_library_items (user_id, item_type, title, subtitle_or_author, content_or_notes, updated_at)
+                VALUES (?, 'draft', ?, ?, ?, CURRENT_TIMESTAMP)
+            """, (user_id, title, template_name, draft_text))
+            try:
+                c.execute("""
+                    INSERT INTO saved_items (user_id, item_type, title, subtitle_or_author, content_or_notes, updated_at)
+                    VALUES (?, 'draft', ?, ?, ?, CURRENT_TIMESTAMP)
+                """, (user_id, title, template_name, draft_text))
+            except Exception:
+                pass
+        conn.commit()
+        conn.close()
+        return True, "Draft saved to Vault!"
+    except Exception as e:
+        return False, str(e)
+
+
+def get_writer_drafts(user_id=1):
+    return get_saved_library_items(item_type="draft", user_id=user_id)
+
+
+# Aliases for compatibility
+save_item = save_library_item
+get_saved_items = get_saved_library_items
+delete_saved_item = delete_saved_library_item
 
 
 if __name__ == "__main__":

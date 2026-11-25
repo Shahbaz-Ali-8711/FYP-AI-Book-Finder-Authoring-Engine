@@ -1,19 +1,19 @@
 import io
 import re
 from PIL import Image
-from config.settings import GEMINI_API_KEY
-from utils.helpers import call_gemini_with_fallback
+from utils.ai_router import route_ai_completion, render_ai_badge, get_gemini_api_key
 from modules.search_engine import search_free_books
 
 
-def extract_text_from_image(image_input):
+def extract_book_details_from_image(image_input):
     """
-    Extracts the exact Book Title and Author Name from a camera capture or uploaded image
-    using Gemini Vision. Pre-compresses the image to max width 600px and JPEG quality 75%
-    for lightning-fast 2-3 second execution.
+    Multimodal Vision extraction using Gemini 3.5 Flash-Lite:
+    Extracts Book Title, Author, Genre, Key Themes, Synopsis, and Recommendations.
+    Pre-compresses image to 600px max width and 75% quality for sub-2s speed.
     """
-    if not GEMINI_API_KEY:
-        return "⚠️ Gemini API Key missing! Check .env file."
+    api_key = get_gemini_api_key()
+    if not api_key:
+        return False, "⚠️ Gemini API Key missing! Check .env or Streamlit Secrets.", {}
 
     try:
         if hasattr(image_input, "getvalue"):
@@ -25,11 +25,9 @@ def extract_text_from_image(image_input):
 
         image = Image.open(io.BytesIO(image_bytes))
 
-        # Convert RGBA/P to RGB
         if image.mode in ("RGBA", "P"):
             image = image.convert("RGB")
 
-        # ULTRA-FAST PRE-PROCESSING: Resize to max width 600px & Compress to 75% JPEG
         max_dimension = 600
         if image.width > max_dimension or image.height > max_dimension:
             image.thumbnail((max_dimension, max_dimension), Image.Resampling.LANCZOS)
@@ -40,45 +38,69 @@ def extract_text_from_image(image_input):
         fast_image = Image.open(compressed_buffer)
 
         prompt = """
-        Examine this book cover image.
-        Extract ONLY:
+        Examine this book cover photo carefully.
+        Extract the following structured details:
         TITLE: [Exact Book Title]
         AUTHOR: [Author Name]
-        
-        Keep it brief and exact. No conversational intro.
+        GENRE: [Primary Literary Genre]
+        THEMES: [2-3 Core Themes separated by commas]
+        SYNOPSIS: [Concise 2-sentence summary of this book's premise]
+        RECOMMENDATIONS: [3 similar acclaimed books separated by commas]
+
+        Format each on a single line starting with the field name. Do not include conversational greetings.
         """
 
-        success, result = call_gemini_with_fallback(GEMINI_API_KEY, [prompt, fast_image])
-        if success and result:
-            clean_res = result.strip()
-            title_match = re.search(r"TITLE:\s*(.+)", clean_res, re.IGNORECASE)
-            author_match = re.search(r"AUTHOR:\s*(.+)", clean_res, re.IGNORECASE)
+        success, result, meta = route_ai_completion([prompt, fast_image], task="vision")
+        if not success or not result:
+            return False, result or "Could not analyze image.", {}
 
-            if title_match and author_match:
-                title = title_match.group(1).strip()
-                author = author_match.group(1).strip()
-                return f"{title} by {author}"
-            elif title_match:
-                return title_match.group(1).strip()
-            else:
-                return clean_res.replace("TITLE:", "").replace("AUTHOR:", "").strip()
-        else:
-            return f"Error: {result}"
+        clean_res = result.strip()
+        details = {
+            "title": "Unknown Title",
+            "author": "Unknown Author",
+            "genre": "Literature",
+            "themes": "Human Nature, Discovery",
+            "synopsis": "A notable literary work exploring fundamental ideas.",
+            "recommendations": "Classic Works"
+        }
+
+        t_m = re.search(r"TITLE:\s*(.+)", clean_res, re.IGNORECASE)
+        a_m = re.search(r"AUTHOR:\s*(.+)", clean_res, re.IGNORECASE)
+        g_m = re.search(r"GENRE:\s*(.+)", clean_res, re.IGNORECASE)
+        th_m = re.search(r"THEMES:\s*(.+)", clean_res, re.IGNORECASE)
+        s_m = re.search(r"SYNOPSIS:\s*(.+)", clean_res, re.IGNORECASE)
+        r_m = re.search(r"RECOMMENDATIONS:\s*(.+)", clean_res, re.IGNORECASE)
+
+        if t_m:
+            details["title"] = t_m.group(1).strip()
+        if a_m:
+            details["author"] = a_m.group(1).strip()
+        if g_m:
+            details["genre"] = g_m.group(1).strip()
+        if th_m:
+            details["themes"] = th_m.group(1).strip()
+        if s_m:
+            details["synopsis"] = s_m.group(1).strip()
+        if r_m:
+            details["recommendations"] = r_m.group(1).strip()
+
+        label = f"{details['title']} by {details['author']}"
+        return True, label, details
 
     except Exception as e:
-        return f"Error analyzing image: {str(e)}"
+        return False, f"Vision OCR Error: {str(e)}", {}
 
 
 def scan_and_resolve_book(image_input):
     """
-    Full pipeline: compresses image, extracts title/author in ~2s,
-    and queries cached Gutenberg + Open Library for instant digital reading links.
+    Full pipeline: compresses image, extracts complete structured details via Gemini 3.5 Flash-Lite,
+    and searches Project Gutenberg & Open Library archives for digital copies.
     """
-    detected_text = extract_text_from_image(image_input)
-    if not detected_text or detected_text.startswith("Error") or detected_text.startswith("⚠️"):
-        return False, detected_text, []
+    success, label, details = extract_book_details_from_image(image_input)
+    if not success:
+        return False, label, [], {}
 
-    search_query = detected_text.split(" by ")[0].strip() if " by " in detected_text else detected_text
+    search_query = details.get("title") or label.split(" by ")[0].strip()
     matches = search_free_books(search_query)
 
-    return True, detected_text, matches
+    return True, label, matches, details

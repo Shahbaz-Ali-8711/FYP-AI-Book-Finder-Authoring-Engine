@@ -89,7 +89,7 @@ def _render_hero():
                             border-radius: 12px; padding: 0.45rem 0.85rem;
                             font-size: 0.82rem; color: #1A1A1A; font-weight: 700;
                             display: flex; align-items: center; gap: 0.4rem; box-shadow: 0 2px 4px rgba(26,26,26,0.03);">
-                    <span style="color: #E34234;">⚡</span> <span>Gemini 3.8 & 2.5 Flash</span>
+                    <span style="color: #E34234;">⚡</span> <span>Hybrid AI: Groq LPU & Gemini Multimodal</span>
                 </div>
                 <div style="background: #F5F5ED; border: 1px solid #E5E5DC;
                             border-radius: 12px; padding: 0.45rem 0.85rem;
@@ -113,10 +113,10 @@ def _render_hero():
         col_cta, col_sec = st.columns([1.3, 1.1])
         with col_cta:
             if st.button(f"🚀 {cms['cta_text']}", key="hero_cta", use_container_width=True, type="primary"):
-                if not st.session_state.get("logged_in"):
-                    st.session_state["show_login"] = True
-                else:
-                    st.session_state["nav_page"] = "creator"
+                st.session_state["nav_page"] = "creator"
+                st.session_state["active_creator_tab"] = 1
+                st.session_state["writer_mode"] = "Mode 2: Premium Automated Full Book Generator"
+                st.session_state["creator_mode_selection"] = "🚀 Mode 2: Premium Automated Full Book Generator"
                 st.rerun()
 
         with col_sec:
@@ -127,10 +127,10 @@ def _render_hero():
 
     # Metrics Counter Banner in Warm Ivory
     metrics_cms = _get_cms("metrics", {
-        "m1_val": "10K+", "m1_lbl": "Covers Scanned",
-        "m2_val": "50K+", "m2_lbl": "AI Summaries Generated",
-        "m3_val": "3K+", "m3_lbl": "Authors Publishing",
-        "m4_val": "99.4%", "m4_lbl": "Platform Satisfaction",
+        "m1_val": "60,000+", "m1_lbl": "Indexed Public Domain Books",
+        "m2_val": "5 Core", "m2_lbl": "AI Precision Engines",
+        "m3_val": "PDF & DOCX", "m3_lbl": "Publication Compilers",
+        "m4_val": "< 2.0s", "m4_lbl": "Sub-Second Latency",
     })
 
     metrics_html = f"""
@@ -207,7 +207,8 @@ def _render_home_expanded_features():
             </div>
             """)
             if st.button(f"Launch {btn_label} →", key=f"suite_feat_btn_{j}", use_container_width=True, type="primary" if j == 0 else "secondary"):
-                st.session_state["nav_page"] = target_route
+                st.session_state["nav_page"] = "reader"
+                st.session_state["active_reader_tab"] = j
                 st.rerun()
 
     cols_bottom = st.columns(2)
@@ -231,8 +232,16 @@ def _render_home_expanded_features():
                 </div>
             </div>
             """)
-            if st.button(f"Launch {btn_label} →", key=f"suite_feat_btn_{3+k}", use_container_width=True, type="primary"):
-                st.session_state["nav_page"] = target_route
+            if st.button(f"Launch {btn_label} →", key=f"suite_feat_btn_{3+k}", use_container_width=True, type="secondary" if k == 0 else "primary"):
+                st.session_state["nav_page"] = "creator"
+                if k == 0:
+                    st.session_state["active_creator_tab"] = 0
+                    st.session_state["writer_mode"] = "Mode 1: Interactive Book Editor & Design Studio"
+                    st.session_state["creator_mode_selection"] = "🎨 Mode 1: Interactive Book Editor & Design Studio"
+                else:
+                    st.session_state["active_creator_tab"] = 1
+                    st.session_state["writer_mode"] = "Mode 2: Premium Automated Full Book Generator"
+                    st.session_state["creator_mode_selection"] = "🚀 Mode 2: Premium Automated Full Book Generator"
                 st.rerun()
 
 
@@ -465,8 +474,16 @@ def _render_core_engines_grid():
             </div>
             """
             render_html(card_html)
-            if st.button(f"Launch {btn_label} →", key=f"engine_launch_{3+k}", use_container_width=True, type="primary"):
-                st.session_state["nav_page"] = nav_target
+            if st.button(f"Launch {btn_label} →", key=f"engine_launch_{3+k}", use_container_width=True, type="secondary" if k == 0 else "primary"):
+                st.session_state["nav_page"] = "creator"
+                if k == 0:
+                    st.session_state["active_creator_tab"] = 0
+                    st.session_state["writer_mode"] = "Mode 1: Interactive Book Editor & Design Studio"
+                    st.session_state["creator_mode_selection"] = "🎨 Mode 1: Interactive Book Editor & Design Studio"
+                else:
+                    st.session_state["active_creator_tab"] = 1
+                    st.session_state["writer_mode"] = "Mode 2: Premium Automated Full Book Generator"
+                    st.session_state["creator_mode_selection"] = "🚀 Mode 2: Premium Automated Full Book Generator"
                 st.rerun()
 
 
@@ -616,54 +633,57 @@ def _render_book_call():
 
 
 # ==============================================================================
-# TESTIMONIALS & FAQ
+# TARGET USE CASES & WORKFLOWS (PRODUCTION CREDIBILITY)
 # ==============================================================================
 def _render_testimonials():
     test_header = f"""
     <div style="text-align: center; margin: 3.5rem 0 2rem 0;">
-        <div style="font-size: 2.2rem; font-weight: 900; color: #1A1A1A; margin-bottom: 0.5rem;">
-            What Published Authors Say
+        <div style="font-size: 0.85rem; color: #046A38; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 0.4rem;">
+            PRODUCTION PUBLISHING WORKFLOWS
         </div>
-        <div style="font-size: 0.95rem; color: {TEXT_SECONDARY};">
-            Trusted by indie writers, academic researchers, and content creators worldwide
+        <div style="font-size: 2.2rem; font-weight: 900; color: #1A1A1A; margin-bottom: 0.5rem;">
+            Target Use Cases & Architectural Scenarios
+        </div>
+        <div style="font-size: 0.95rem; color: {TEXT_SECONDARY}; max-width: 650px; margin: 0 auto;">
+            Engineered with high precision for academic scholars, university students, and independent authors.
         </div>
     </div>
     """
     render_html(test_header)
 
-    default_testimonials = [
-        ("Dr. Jennifer Hayes", "Academic Author & Book Blogger", "The book formatter and 3D preview saved me weeks of manual work. Uploaded raw research papers, received a structured manuscript in minutes."),
-        ("David Chen", "Sci-Fi Indie Author", "The Creator Studio gave me the structure I was missing for 3 years. It generated cohesive chapter outlines and a phenomenal cover concept."),
-        ("Aisha Patel", "AI Researcher & Speaker", "The literary assistant chatbot acts like having an Oxford editor on standby 24/7. It identified character plot holes instantly."),
+    use_cases = [
+        ("🎓 Academic Researchers & Scholars", "Literature Review & Grounded Doc RAG",
+         "Upload complex PDF or DOCX research manuscripts to extract grounded synthesis with exact [Page X] citations. Export verified APA 7th, MLA 9th, and IEEE bibliographic references in one click.",
+         "RESEARCH & RAG", "#046A38"),
+        ("📚 University Students & Avid Readers", "Deep Book Discovery & Audio Briefs",
+         "Query 60,000+ public domain literary works on Project Gutenberg and Open Library. Scan physical book covers with Gemini Vision OCR for instant digital access and natural TTS audio briefings.",
+         "DISCOVERY & VISION", "#0F5257"),
+        ("✍️ Indie Authors & Thought Leaders", "Autonomous Multi-Chapter Publishing",
+         "Draft in a CapCut-style modular editor with AI Co-Pilot guidance, or compile 50 to 500+ page manuscripts with front cover illustration, title leaf, auto-TOC, and formatted PDF & DOCX outputs.",
+         "FULL BOOK GENERATOR", "#E34234"),
     ]
 
-    test_cms = _get_cms("testimonials", {})
-
     cols = st.columns(3)
-    for i in range(3):
-        author = test_cms.get(f"t_{i}_author", default_testimonials[i][0])
-        role = test_cms.get(f"t_{i}_role", default_testimonials[i][1])
-        text = test_cms.get(f"t_{i}_text", default_testimonials[i][2])
-
+    for i, (title, role, text, badge, b_color) in enumerate(use_cases):
         with cols[i]:
             card_html = f"""
             <div style="background: #FFFFFF; border-radius: 20px; padding: 2rem; border: 1.5px solid #E5E5DC;
-                        margin-bottom: 1rem; min-height: 230px; box-shadow: 0 10px 25px -10px rgba(26, 26, 26, 0.05);">
-                <div style="font-size: 2.2rem; color: #E34234; margin-bottom: 0.5rem; line-height: 1; font-weight: bold;">"</div>
-                <div style="font-size: 0.92rem; color: #333333; line-height: 1.7; margin-bottom: 1.5rem;">
-                    {text}
-                </div>
-                <div style="display: flex; align-items: center; gap: 0.85rem;">
-                    <div style="width: 44px; height: 44px; border-radius: 50%;
-                                background: linear-gradient(135deg, #046A38 0%, #0F5257 100%);
-                                display: flex; align-items: center; justify-content: center;
-                                color: white; font-weight: 800; font-size: 1rem;
-                                border: 2px solid rgba(4, 106, 56, 0.4);">
-                        {author[0].upper() if author else 'U'}
+                        margin-bottom: 1rem; min-height: 290px; box-shadow: 0 10px 25px -10px rgba(26, 26, 26, 0.05);
+                        display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                    <div style="display: inline-block; background: rgba(4, 106, 56, 0.08); color: {b_color};
+                                font-size: 0.7rem; font-weight: 800; padding: 0.2rem 0.6rem; border-radius: 9999px;
+                                border: 1px solid rgba(4, 106, 56, 0.28); margin-bottom: 1rem;">
+                        {badge}
                     </div>
-                    <div>
-                        <div style="font-size: 0.95rem; font-weight: 800; color: #1A1A1A;">{author}</div>
-                        <div style="font-size: 0.8rem; color: #046A38; font-weight: 700;">{role}</div>
+                    <div style="font-size: 1.18rem; font-weight: 900; color: #1A1A1A; margin-bottom: 0.35rem;">
+                        {title}
+                    </div>
+                    <div style="font-size: 0.85rem; color: #046A38; font-weight: 700; margin-bottom: 1rem;">
+                        {role}
+                    </div>
+                    <div style="font-size: 0.88rem; color: #4A4A4A; line-height: 1.65;">
+                        {text}
                     </div>
                 </div>
             </div>

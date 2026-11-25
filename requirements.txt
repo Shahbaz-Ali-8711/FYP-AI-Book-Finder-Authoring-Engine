@@ -1,11 +1,12 @@
 streamlit
 streamlit-option-menu
-opencv-python
+groq
 google-genai
 python-dotenv
 requests
-easyocr
 pillow
 bcrypt
 fpdf2
-PyPDF2
+pypdf
+python-docx
+gTTS
